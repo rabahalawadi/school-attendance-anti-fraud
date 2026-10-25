@@ -1,9 +1,11 @@
 package com.school.attendance.attendance.controller;
 
 import com.school.attendance.attendance.dto.AttendanceRecordResponse;
+import com.school.attendance.attendance.dto.AttendanceSessionResponse;
 import com.school.attendance.attendance.dto.RegisterAttendanceRequest;
 import com.school.attendance.attendance.dto.RegisterAttendanceResponse;
 import com.school.attendance.attendance.entity.AttendanceSession;
+import com.school.attendance.attendance.entity.SessionStatus;
 import com.school.attendance.attendance.service.AttendanceRegistrationService;
 import com.school.attendance.attendance.service.AttendanceSessionService;
 import com.school.attendance.common.dto.ApiResponse;
@@ -34,6 +36,29 @@ public class AttendanceController {
             AttendanceRegistrationService registrationService) {
         this.sessionService = sessionService;
         this.registrationService = registrationService;
+    }
+
+    @GetMapping("/sessions")
+    @Operation(summary = "List attendance sessions")
+    public ResponseEntity<ApiResponse<List<AttendanceSessionResponse>>> getSessions(
+            @RequestParam(required = false) SessionStatus status,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        List<AttendanceSessionResponse> sessions = sessionService.getSessions(principal, status);
+        return ResponseEntity.ok(ApiResponse.ok(sessions));
+    }
+
+    @PostMapping("/demo/launch")
+    @Operation(summary = "Launch or retrieve active demo attendance session for instant testing")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> launchDemoSession() {
+        Map<String, Object> demoData = sessionService.launchDemoSession();
+        return ResponseEntity.ok(ApiResponse.ok(demoData, "Active demo session ready"));
+    }
+
+    @GetMapping("/demo/active-session")
+    @Operation(summary = "Get current active demo session and challenge")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveDemoSession() {
+        Map<String, Object> demoData = sessionService.getActiveDemoSession();
+        return ResponseEntity.ok(ApiResponse.ok(demoData));
     }
 
     @PostMapping("/sessions")

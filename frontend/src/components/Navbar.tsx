@@ -64,11 +64,11 @@ export const Navbar: React.FC = () => {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <span className="font-extrabold text-slate-900 tracking-tight text-lg block leading-none">
-                {t('system_title')}
+              <span className="font-black text-slate-900 tracking-tight text-xl block leading-none">
+                VeriAttend
               </span>
-              <span className="text-xs text-brand-600 font-semibold tracking-wider uppercase mt-1 block">
-                {role ? t(`role_${role.toLowerCase()}`) : 'Secure Attendance'}
+              <span className="text-[11px] text-brand-600 font-bold tracking-wider uppercase mt-1 block">
+                {role ? t(`role_${role.toLowerCase()}`) : 'Smart Attendance Platform'}
               </span>
             </div>
           </Link>

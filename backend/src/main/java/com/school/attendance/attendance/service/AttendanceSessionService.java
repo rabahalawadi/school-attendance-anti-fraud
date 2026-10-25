@@ -3,18 +3,22 @@ package com.school.attendance.attendance.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.school.attendance.academic.entity.*;
 import com.school.attendance.academic.repository.*;
+import com.school.attendance.attendance.dto.AttendanceSessionResponse;
 import com.school.attendance.attendance.entity.*;
 import com.school.attendance.attendance.repository.*;
 import com.school.attendance.common.exception.ApiException;
 import com.school.attendance.fraud.entity.VerificationPolicy;
 import com.school.attendance.fraud.model.AntiFraudPolicyModel;
 import com.school.attendance.fraud.repository.VerificationPolicyRepository;
+import com.school.attendance.security.UserPrincipal;
+import com.school.attendance.user.entity.Role;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AttendanceSessionService {
@@ -23,6 +27,7 @@ public class AttendanceSessionService {
     private final AttendanceChallengeRepository challengeRepository;
     private final AttendanceRecordRepository recordRepository;
     private final TeacherRepository teacherRepository;
+    private final StudentRepository studentRepository;
     private final SectionRepository sectionRepository;
     private final SubjectRepository subjectRepository;
     private final AcademicYearRepository academicYearRepository;
@@ -37,6 +42,7 @@ public class AttendanceSessionService {
             AttendanceChallengeRepository challengeRepository,
             AttendanceRecordRepository recordRepository,
             TeacherRepository teacherRepository,
+            StudentRepository studentRepository,
             SectionRepository sectionRepository,
             SubjectRepository subjectRepository,
             AcademicYearRepository academicYearRepository,
@@ -46,6 +52,7 @@ public class AttendanceSessionService {
         this.challengeRepository = challengeRepository;
         this.recordRepository = recordRepository;
         this.teacherRepository = teacherRepository;
+        this.studentRepository = studentRepository;
         this.sectionRepository = sectionRepository;
         this.subjectRepository = subjectRepository;
         this.academicYearRepository = academicYearRepository;
@@ -79,6 +86,85 @@ public class AttendanceSessionService {
                 academicYear, section, subject, teacher, startAt, endAt, policySnapshot);
 
         return sessionRepository.save(session);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttendanceSessionResponse> getSessions(UserPrincipal principal, SessionStatus status) {
+        List<AttendanceSession> sessions;
+        if (principal == null) {
+            sessions = status != null ? sessionRepository.findByStatus(status) : sessionRepository.findAll();
+        } else if (principal.getRole() == Role.TEACHER) {
+            Optional<Teacher> teacher = teacherRepository.findByUserId(principal.getId());
+            if (teacher.isPresent()) {
+                sessions = sessionRepository.findByTeacherIdOrderByScheduledStartAtDesc(teacher.get().getId());
+                if (status != null) {
+                    sessions = sessions.stream().filter(s -> s.getStatus() == status).toList();
+                }
+            } else {
+                sessions = status != null ? sessionRepository.findByStatus(status) : sessionRepository.findAll();
+            }
+        } else if (principal.getRole() == Role.STUDENT) {
+            Optional<Student> student = studentRepository.findByUserId(principal.getId());
+            if (student.isPresent()) {
+                List<StudentEnrollment> enrollments = enrollmentRepository.findByStudentId(student.get().getId());
+                Set<UUID> sectionIds = enrollments.stream().map(e -> e.getSection().getId()).collect(Collectors.toSet());
+                sessions = sessionRepository.findAll().stream()
+                        .filter(s -> sectionIds.contains(s.getSection().getId()))
+                        .filter(s -> status == null || s.getStatus() == status)
+                        .toList();
+            } else {
+                sessions = status != null ? sessionRepository.findByStatus(status) : sessionRepository.findAll();
+            }
+        } else {
+            sessions = status != null ? sessionRepository.findByStatus(status) : sessionRepository.findAll();
+        }
+
+        return sessions.stream().map(AttendanceSessionResponse::fromEntity).toList();
+    }
+
+    @Transactional
+    public Map<String, Object> launchDemoSession() {
+        UUID demoSessionId = UUID.fromString("c0000000-0000-0000-0000-000000000001");
+        Optional<AttendanceSession> opt = sessionRepository.findById(demoSessionId);
+
+        AttendanceSession session;
+        if (opt.isPresent()) {
+            session = opt.get();
+            if (session.getStatus() != SessionStatus.OPEN) {
+                session.setStatus(SessionStatus.OPEN);
+                session.setOpenedAt(Instant.now());
+                session = sessionRepository.save(session);
+            }
+        } else {
+            AcademicYear year = academicYearRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> ApiException.badRequest("No academic year found"));
+            Section section = sectionRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> ApiException.badRequest("No section found"));
+            Subject subject = subjectRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> ApiException.badRequest("No subject found"));
+            Teacher teacher = teacherRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> ApiException.badRequest("No teacher found"));
+
+            session = new AttendanceSession(year, section, subject, teacher,
+                    Instant.now().minusSeconds(600), Instant.now().plusSeconds(3000), resolvePolicySnapshot(section.getId()));
+            session.setId(demoSessionId);
+            session.setStatus(SessionStatus.OPEN);
+            session.setOpenedAt(Instant.now());
+            session = sessionRepository.save(session);
+        }
+
+        rotateChallenges(session);
+        Map<String, Object> challenge = getCurrentChallenge(session.getId());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("session", AttendanceSessionResponse.fromEntity(session));
+        result.put("challenge", challenge);
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> getActiveDemoSession() {
+        return launchDemoSession();
     }
 
     @Transactional

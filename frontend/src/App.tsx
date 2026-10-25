@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
+import { DemoBar } from './components/DemoBar';
 import { Login } from './pages/Login';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AntiFraudConfig } from './pages/admin/AntiFraudConfig';
@@ -72,6 +73,7 @@ export const App: React.FC = () => {
             path="*"
             element={
               <>
+                <DemoBar />
                 <Navbar />
                 <main className="flex-1">
                   <Routes>

@@ -102,8 +102,20 @@ public class StudentController {
     }
 
     @GetMapping("/import/template")
-    @Operation(summary = "Download standard sample Excel import template")
-    public ResponseEntity<byte[]> downloadTemplate() {
+    @Operation(summary = "Download standard sample Excel or CSV import template")
+    public ResponseEntity<byte[]> downloadTemplate(@RequestParam(defaultValue = "xlsx") String format) {
+        if ("csv".equalsIgnoreCase(format)) {
+            String csvContent = "Student Number,Full Name,Grade,Section,Email,Phone\n" +
+                    "STU-2001,Yousef Al-Kahlout,Grade 10,Section A,yousef@student.school.edu,+962791234567\n" +
+                    "STU-2002,Dana Al-Masri,Grade 10,Section A,dana@student.school.edu,+962792345678\n" +
+                    "STU-2003,Zaid Qasim,Grade 10,Section B,zaid@student.school.edu,+962793456789\n";
+            byte[] csvBytes = csvContent.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=student_import_template.csv")
+                    .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                    .body(csvBytes);
+        }
+
         byte[] excelBytes = excelImportService.generateTemplate();
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=student_import_template.xlsx")

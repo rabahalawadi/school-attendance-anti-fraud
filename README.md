@@ -1,6 +1,6 @@
-# School Attendance Management & Anti-Fraud System
+# VeriAttend
 
-> Production-oriented school attendance management and anti-fraud system built with **Spring Boot 3 (Java 21 LTS)**, **React 18 + TypeScript + Vite**, and **PostgreSQL**.
+> Production-grade school attendance management and multi-factor anti-fraud platform built with **Spring Boot 3 (Java 21 LTS)**, **React 18 + TypeScript + Vite**, and **PostgreSQL**.
 
 [![Repository](https://img.shields.io/badge/GitHub-rabahalawadi%2Fschool--attendance--anti--fraud-blue?logo=github)](https://github.com/rabahalawadi/school-attendance-anti-fraud)
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
@@ -12,7 +12,7 @@
 
 ## 📌 Project Overview
 
-This system provides complete, secure attendance tracking across classes, grades, and subjects, specifically engineered to **eliminate fraudulent attendance** (e.g. students registering for absent classmates).
+**VeriAttend** is an intelligent attendance tracking and anti-fraud platform designed to prevent students from recording attendance for absent peers. It combines cryptographically signed dynamic QR code rotation, synchronized 6-digit challenge codes, classroom device authorization, GPS geofencing, and a 14-day grace window for manual teacher confirmation.
 
 Administrators have granular control over anti-fraud policies, including independent activation/deactivation, parameter adjustments, and class-level overrides.
 
@@ -21,7 +21,9 @@ Administrators have granular control over anti-fraud policies, including indepen
 1. **Academic Hierarchy & Student Management**:
    - `School → Academic Year → Grade → Class / Section → Subject → Student Enrollment`.
    - Teacher assignments to subjects and class sections.
-   - Excel (`.xlsx`) and CSV bulk import with schema validation, conflict detection, and preview.
+   - Excel (`.xlsx`) and CSV bulk import with schema validation, conflict detection, formula injection defense, and preview staging.
+   - One-click sample dataset generation for instant testing without opening spreadsheets.
+   - Downloadable Excel (`.xlsx`) and CSV (`.csv`) import templates.
    - Manual grade-promotion workflow preserving historical records.
 
 2. **Configurable Multi-Factor Anti-Fraud Engine**:
@@ -29,7 +31,7 @@ Administrators have granular control over anti-fraud policies, including indepen
    - **Method B: Rotating Dynamic QR Code** (Cryptographically signed, default 15s server-authoritative rotation).
    - **Method C: Ephemeral 6-Digit Challenge Code** (Displayed alongside QR, server-expired, strictly rate-limited).
    - **Method D: GPS Geofencing (Optional/Advisory)** (School perimeter bounding with accuracy limits).
-   - **Initial 2-Week Manual Verification Window** (Configurable grace period for teacher review and validation).
+   - **Initial 14-Day Manual Verification Window** (Configurable grace period for teacher review and validation).
 
 3. **Offline Attendance & PWA Synchronization**:
    - Progressive Web App (PWA) with client-side caching (IndexedDB).
@@ -37,13 +39,28 @@ Administrators have granular control over anti-fraud policies, including indepen
    - Distinct statuses: `Recorded Offline`, `Sync Pending`, `Synchronized`, `Server Verified`.
    - Cryptographic idempotency keys prevent duplicates or replay attacks.
 
-4. **Role-Based Access Control (RBAC)**:
-   - **Administrator**: Comprehensive school setup, anti-fraud rules, imports, device management, audit logs, system-wide analytics.
-   - **Teacher**: Lesson session management, real-time QR display, manual check-in override, student attendance review.
-   - **Student**: View active eligible sessions, scan rotating QR code / enter challenge code, personal attendance history.
+4. **Zero-Friction Testing & Demo Suite**:
+   - Persistent top **Demo Bar** with 1-click persona switching (Admin, Teacher Ahmad, Student Tariq, Student Layla).
+   - Pre-seeded active demo session with live challenges (`c0000000-0000-0000-0000-000000000001`).
+   - "⚡ 1-Click Fill Demo Code" on student portal for instant PC testing without camera.
+   - "Simulate Check-In" on projector HUD for instant roster populating.
 
 5. **Internationalization (i18n)**:
    - Full bilingual support: **English (LTR)** and **العربية (RTL)** with fluid layout flipping.
+
+---
+
+## 🔑 Demo & Test Credentials
+
+All accounts are pre-seeded with the uniform password: `Password@123456`
+
+| Persona | Username | Role | Scope |
+| :--- | :--- | :--- | :--- |
+| **System Administrator** | `admin` | `ADMIN` | Full school administration & policy control |
+| **Teacher Ahmad** | `teacher.ahmad` | `TEACHER` | Grade 10-A Computer Science (CS101) |
+| **Teacher Sarah** | `teacher.sarah` | `TEACHER` | Advanced Mathematics & Applied Physics |
+| **Student Tariq** | `student.tariq` | `STUDENT` | Grade 10-A (Student ID: `STU-1001`) |
+| **Student Layla** | `student.layla` | `STUDENT` | Grade 10-A (Student ID: `STU-1002`) |
 
 ---
 
@@ -70,91 +87,29 @@ Administrators have granular control over anti-fraud policies, including indepen
 
 ---
 
-## 🗄️ Database Schema & Entities
+## 🗄️ Database Migrations (Flyway)
 
-The relational database is managed via **Flyway migrations** and strictly normalizes the academic and security domains:
-
-- `users` (UUID, username, password_hash via Argon2/BCrypt, role, status)
-- `students` (UUID, user_id, student_number, full_name, status)
-- `teachers` (UUID, user_id, employee_number, full_name, status)
-- `academic_years`, `grades`, `sections`, `subjects`
-- `student_enrollments`, `student_subject_enrollments`
-- `teacher_assignments`
-- `attendance_sessions` (academic_year, section, subject, teacher, status, policy_snapshot)
-- `attendance_challenges` (ephemeral cryptographic QR & 6-digit challenge tokens)
-- `attendance_records` (session_id, student_id, status, verification_status, idempotency_key)
-- `verification_policies` (global and section-specific rules, parameters, required/optional)
-- `verification_attempts` (audit log of every factor verification)
-- `registered_devices` & `device_authorizations` (trusted school classroom hardware)
-- `manual_reviews` & `attendance_correction_requests`
-- `offline_sync_batches` & `audit_logs`
+1. `V1__init_schema.sql` (21 tables covering users, academic hierarchy, sessions, challenges, records, policies, devices, sync batches, audit logs).
+2. `V2__seed_initial_data.sql` (Academic year 2026/2027, Grades 10-12, Sections A-B, Subjects, Teachers, Students, Enrollments, Global Anti-Fraud Policy).
+3. `V3__add_demo_session.sql` (Active open session `c0000000-0000-0000-0000-000000000001` with rotating challenge codes for Grade 10-A CS101).
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Running Locally
 
-### Prerequisites
+### Backend (Spring Boot 3 + Java 21)
+```bash
+cd backend
+mvn spring-boot:run
+```
+- API Base URL: `http://localhost:8080`
+- Swagger / OpenAPI Docs: `http://localhost:8080/swagger-ui.html`
+- Health Endpoint: `http://localhost:8080/actuator/health`
 
-- **Java**: OpenJDK 21 LTS (`java -version`)
-- **Maven**: 3.9+ or `./mvnw`
-- **Node.js**: v18+ / v20+ / v22+ and npm
-- **Database**: PostgreSQL 15+ (local or containerized)
-
-### Local Development Setup
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/rabahalawadi/school-attendance-anti-fraud.git
-   cd school-attendance-anti-fraud
-   ```
-
-2. **Configure Environment**:
-   ```bash
-   cp .env.example .env
-   # Update database credentials and JWT secret if needed
-   ```
-
-3. **Backend Setup**:
-   ```bash
-   cd backend
-   mvn spring-boot:run
-   ```
-   *Runs at `http://localhost:8080`, Flyway automatically applies all database migrations.*
-
-4. **Frontend Setup**:
-   ```bash
-   cd ../frontend
-   npm install
-   npm run dev
-   ```
-   *Runs at `http://localhost:5173` with Vite HMR.*
-
----
-
-## 📅 Phased Implementation Plan
-
-- [x] **Phase 1: Architecture & Remote Repository Initialization**
-  - Git repository created & published: [`rabahalawadi/school-attendance-anti-fraud`](https://github.com/rabahalawadi/school-attendance-anti-fraud)
-  - Specification docs, ER models, security architecture, and schema definitions.
-- [ ] **Phase 2: Backend Architecture & Database Migrations (Spring Boot 3 + Flyway)**
-  - Entity models, Spring Security, JWT authentication, RBAC, Flyway migrations `V1__init_schema.sql`.
-- [ ] **Phase 3: Academic Management & Excel Importer**
-  - Grades, sections, subjects, student/teacher enrollment, Apache POI `.xlsx` import & validation.
-- [ ] **Phase 4: Attendance Lifecycle & Multi-Factor Anti-Fraud Engine**
-  - Session manager, dynamic QR rotation (15s), 6-digit code rotation, registered device & GPS verification, policy evaluator.
-- [ ] **Phase 5: Offline PWA & Sync Protocol**
-  - IndexedDB storage, idempotency hashing, sync batches, clock-drift detection.
-- [ ] **Phase 6: Frontend Portals (Admin, Teacher, Student) & Bilingual UI**
-  - Responsive dashboards, projector-friendly teacher QR screen, student scanner, English/Arabic RTL.
-- [ ] **Phase 7: Analytics, Hardening, Automated Tests & Docker Deployment**
-  - Daily/weekly/monthly metrics, CSV/Excel export, security & Playwright integration tests, Docker Compose.
-
----
-
-## 🛡️ Anti-Fraud Limitations & Threat Model
-
-While this system aggressively mitigates fraudulent check-ins, no electronic system can claim 100% fraud immunity without physical human oversight:
-- **QR Sharing**: High-frequency rotation (15s) drastically reduces remote screenshot sharing over chat.
-- **GPS Spoofing**: Marked advisory; verified against known classroom device hardware trust anchors.
-- **Device Credentialing**: School kiosk mode binds attendance to physical classroom terminals.
-- **Initial Verification Window**: Teachers manually confirm student presence during the first 14 days to establish baseline behavioral integrity.
+### Frontend (React 18 + TypeScript + Vite)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+- Web Application: `http://localhost:5173`

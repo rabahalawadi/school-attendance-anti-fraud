@@ -11,7 +11,7 @@ interface LanguageContextType {
 
 const translations: Record<Language, Record<string, string>> = {
   en: {
-    system_title: 'School Attendance & Anti-Fraud System',
+    system_title: 'VeriAttend',
     login: 'Sign In',
     logout: 'Sign Out',
     username: 'Username',
@@ -55,7 +55,7 @@ const translations: Record<Language, Record<string, string>> = {
     synced: 'All records synchronized',
   },
   ar: {
-    system_title: 'نظام إدارة الحضور ومكافحة التلاعب المدرسي',
+    system_title: 'VeriAttend',
     login: 'تسجيل الدخول',
     logout: 'تسجيل الخروج',
     username: 'اسم المستخدم',
